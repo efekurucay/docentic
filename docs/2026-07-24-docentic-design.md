@@ -198,9 +198,22 @@ Tek sağlayıcı: **OpenRouter** (OpenAI-uyumlu Chat Completions API, `https://o
 
 ---
 
+## Dokümantasyon ve landing (teslimata dahil)
+
+Açık kaynak olduğu için "neyin ne olduğu" ve "nasıl tüketilir" belgelenir. GitHub Pages'te yayınlanır.
+
+- **Landing** (`/docs` veya `gh-pages`, sade statik — efekurucay.com felsefesiyle aynı: framework yok, birkaç KB):
+  - docentic nedir, ne işe yarar (bir paragraf + diyagram)
+  - Nasıl çalışır (2 parça: widget + sunucu)
+  - **Canlı demo:** landing'in kendisine docentic widget'ı gömülü — ziyaretçi "docentic nedir" diye sorup çalışırken görür (dogfooding).
+- **README.md:** hızlı başlangıç — Docker tek komut + gömme snippet'i.
+- **Kurulum rehberi:** self-host adımları (Docker, env değişkenleri, OpenRouter anahtarı, domain allowlist).
+- **Gömme rehberi (consumer):** `<script>` snippet'i, `data-*` seçenekleri, widget görünüm ayarları.
+- **Config referansı:** tüm env değişkenleri tablosu (anlamı, varsayılan, örnek).
+
 ## v1 kapsamı (MVP) — ne var, ne yok
 
-**Var:** widget + sunucu + SQLite(pages/FTS5/sessions/messages) + 3 araç + agentic loop (maxTurns) + 3 provider + sitemap keşfi + ETag/TTL tazeleme + domain allowlist + SSRF kilidi + rate limit + honeypot + SSE streaming + session izolasyonu + owner konuşma logu.
+**Var:** widget + sunucu + SQLite(pages/FTS5/sessions/messages) + 3 araç + agentic loop (maxTurns) + OpenRouter provider + sitemap keşfi + ETag/TTL tazeleme + domain allowlist + SSRF kilidi + rate limit + honeypot + SSE streaming + session izolasyonu + owner konuşma logu + **landing + README + kurulum/gömme dokümantasyonu**.
 
 **Yok (ertelendi):** context compaction/özetleme (maxMessages penceresi yeter), uzun-dönem ziyaretçi hafızası, streaming-tool-execution, embedding/semantik arama (FTS5 yeter), multi-provider fallback dansı, owner dashboard (log DB'de durur, arayüz sonra).
 
