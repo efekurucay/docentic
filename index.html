@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>docentic — an agentic assistant for your static site</title>
+<meta name="description" content="Self-hosted, embeddable AI agent that answers from your own site content. One script tag, your model key, open source.">
+<style>
+  :root { --fg:#15161a; --bg:#fbfbf9; --dim:#6c6f7a; --line:#e3e3de; --accent:#b8401f; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e4e5e7; --bg:#0e0f12; --dim:#8a8d96; --line:#26282e; --accent:#ff7a4d; } }
+  * { box-sizing: border-box; }
+  body { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.65 system-ui, sans-serif; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.1rem; margin: 2.75rem 0 .75rem; }
+  .tag { color: var(--dim); font-size: 1.05rem; margin-top: 0; }
+  a { color: var(--accent); }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  pre { background: color-mix(in srgb, var(--fg) 5%, transparent); border: 1px solid var(--line);
+    border-radius: 8px; padding: .9rem 1rem; overflow-x: auto; font-size: .82rem; line-height: 1.5; }
+  code { font-size: .88em; }
+  .diagram { color: var(--dim); font-size: .78rem; white-space: pre; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  td, th { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .lede { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .lede div { border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; }
+  .lede b { display: block; margin-bottom: .2rem; }
+  footer { margin-top: 3.5rem; color: var(--dim); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  @media (max-width: 34rem) { .lede { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>docentic</h1>
+<p class="tag">An agentic assistant that answers from <em>your</em> static site's content.
+Self-hosted, one script tag, open source.</p>
+
+<div class="lede">
+  <div><b>Knows your site</b>It reads your pages with tools — search, open, follow — and answers only from what it finds.</div>
+  <div><b>Your server, your key</b>Runs on your machine via one Docker command. Your model key never reaches the browser.</div>
+  <div><b>One tag to embed</b>No framework, no build. Drop a <code>&lt;script&gt;</code> into any static site.</div>
+  <div><b>Isolated & private</b>Each visitor gets their own session. One conversation never leaks into another.</div>
+</div>
+
+<h2>How it works</h2>
+<p>docentic discovers your pages from <code>sitemap.xml</code> (or a one-level link crawl),
+stores clean page text in SQLite with full-text search, and gives the model three read-only
+tools. The loop runs until the model stops calling tools, streaming the answer over SSE.</p>
+
+<pre class="diagram">visitor → widget.js → POST /chat (SSE) → docentic → OpenRouter
+                                            │ tools: list_pages · read_page · search
+                                            ▼
+                                      SQLite (pages + FTS5, sessions, messages)
+                                            ▲ sitemap.xml + fetch
+                                      your static site</pre>
+
+<h2>Run it</h2>
+<pre>docker run -p 8080:8080 \
+  -e OPENROUTER_API_KEY=sk-or-... \
+  -e MODEL=openrouter/free \
+  -e ALLOWED_ORIGINS=yoursite.com \
+  ghcr.io/efekurucay/docentic</pre>
+
+<h2>Embed it</h2>
+<pre>&lt;script src="https://your-docentic-host/widget.js"
+        data-endpoint="https://your-docentic-host"
+        data-key="your-site"
+        data-title="Ask this site"&gt;&lt;/script&gt;</pre>
+
+<h2>Configuration</h2>
+<table>
+<tr><th>Env var</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>OPENROUTER_API_KEY</code></td><td>—</td><td>Your OpenRouter key (required). Never sent to the browser.</td></tr>
+<tr><td><code>MODEL</code></td><td><code>openrouter/free</code></td><td>Primary model; routes over free models.</td></tr>
+<tr><td><code>FALLBACK_MODEL</code></td><td><code>deepseek/deepseek-v4-flash</code></td><td>Used if the primary call fails.</td></tr>
+<tr><td><code>ALLOWED_ORIGINS</code></td><td>—</td><td>Hostnames allowed to embed and be crawled.</td></tr>
+<tr><td><code>MAX_TURNS</code></td><td><code>8</code></td><td>Max agent iterations per question.</td></tr>
+<tr><td><code>RATE_LIMIT_PER_MIN</code></td><td><code>20</code></td><td>Requests per minute per IP.</td></tr>
+</table>
+
+<h2>Security</h2>
+<p>SSRF-safe (only <code>ALLOWED_ORIGINS</code> are fetched), read-only parameterized SQL,
+origin allowlist + honeypot + rate limit, and prompt-injection handling — page text is
+data, not instructions. Sessions are isolated by design.</p>
+
+<h2>Try it live</h2>
+<p>Deploy your own and drop the script tag in — the assistant appears in the corner and
+answers from your pages. This page's own assistant is enabled once a docentic host is set;
+until then, follow <em>Run it</em> above.</p>
+
+<footer>
+Open source · MIT · <a href="https://github.com/efekurucay/docentic">github.com/efekurucay/docentic</a><br>
+Built by <a href="https://efekurucay.com">Yahya Efe Kuruçay</a>.
+</footer>
+
+<!-- Live demo widget: set data-endpoint to your deployed docentic host to enable.
+<script src="https://YOUR-HOST/widget.js" data-endpoint="https://YOUR-HOST" data-key="docentic-landing" data-title="Ask about docentic"></script>
+-->
+</body>
+</html>
