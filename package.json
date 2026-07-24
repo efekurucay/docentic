@@ -1,0 +1,18 @@
+{
+  "name": "docentic",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Embeddable agentic site-assistant for static sites. Self-hosted, open source.",
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/main.js"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.23.0",
+    "node-html-parser": "^6.1.0"
+  }
+}
