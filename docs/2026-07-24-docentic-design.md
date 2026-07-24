@@ -143,19 +143,18 @@ Dispatch = düz `Map<name, tool>`. Tek merkezi `authorize + validate + call` bo�
 - Bir ziyaretçinin mesajı **asla** başka session'ın context'ine girmez, **asla** site verisi olmaz.
 - Konuşmalar SQLite'ta saklanır — **owner (site sahibi) görür**, ziyaretçiler birbirininkini göremez.
 - **v1: session-bazlı.** Uzun-dönem ziyaretçi hafızası (sonraki ziyarette hatırlama) yok. Şemada `parent_session_id` kolonu ileride context-compaction için durur ama kullanılmaz.
+- `session_id` = tahmin-edilemez rastgele token. Bir session'ın diğerine sızmaması **veri modeli** (FK izolasyonu) ile garanti; imzalı/kimlikli token gibi ek koruma **v1'de gerekmez** (ziyaretçi kendi cihazındaki kendi konuşmasını taşır, hassas veri yok).
 - Context penceresi: v1'de `maxMessages` penceresi (son N mesaj). Compaction/özetleme ertelenir (Claude Code'un eşik-tetiklemeli yapılandırılmış özeti ölçeklenince eklenir).
 
 ---
 
-## Provider soyutlaması
+## Provider — OpenRouter (tek)
 
-Tek `Provider` protokolü, loop provider-agnostik:
-```
-build_request(messages, tools) -> raw_request
-stream(raw_request) -> async iterator of delta
-parse_response(raw) -> NormalizedResponse { content, tool_calls, finish_reason, usage }
-```
-- Gemini / Claude / OpenAI için 3 sınıf, düz if/elif dispatch. hermes'in 5 api_mode + transport registry'si **fazla, atla**.
+Tek sağlayıcı: **OpenRouter** (OpenAI-uyumlu Chat Completions API, `https://openrouter.ai/api/v1`).
+- Tek anahtar, tek client. Model `env` ile seçilir (`MODEL=anthropic/claude-sonnet-4.6`, `google/gemini-...` vb.) → tek satırla model değişir.
+- Çok-provider soyutlaması **gereksiz** — OpenRouter zaten tüm modelleri tek API'de topluyor. hermes'in 5 api_mode + transport registry'si atlanır.
+- Yine de iç `NormalizedResponse { content, tool_calls, finish_reason, usage }` tipi tutulur — loop ham API yanıtına değil bu tipe bakar; ileride başka provider gerekirse tek `parse_response` değişir.
+- Tool calling: OpenRouter modele bağlı function-calling destekler; zod → JSON Schema tanımı gönderilir.
 - API anahtarı sunucuda `env`. Siteye **asla** geçmez.
 
 ---
@@ -184,9 +183,10 @@ parse_response(raw) -> NormalizedResponse { content, tool_calls, finish_reason, 
 - **Depo:** tek SQLite (WAL). Ölçek gerekirse Postgres.
 - **Kurulum:** Docker tek komut.
   ```
-  docker run -e PROVIDER=gemini -e API_KEY=xxx \
+  docker run -e OPENROUTER_API_KEY=xxx \
+             -e MODEL=anthropic/claude-sonnet-4.6 \
              -e ALLOWED_ORIGINS=efekurucay.com \
-             -e MODEL=... -e RATE_LIMIT=20/min \
+             -e RATE_LIMIT=20/min \
              -p 8080:8080 ghcr.io/efekurucay/docentic
   ```
 - **Gömme:**
