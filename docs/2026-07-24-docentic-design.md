@@ -151,7 +151,8 @@ Dispatch = düz `Map<name, tool>`. Tek merkezi `authorize + validate + call` bo�
 ## Provider — OpenRouter (tek)
 
 Tek sağlayıcı: **OpenRouter** (OpenAI-uyumlu Chat Completions API, `https://openrouter.ai/api/v1`).
-- Tek anahtar, tek client. Model `env` ile seçilir (`MODEL=anthropic/claude-sonnet-4.6`, `google/gemini-...` vb.) → tek satırla model değişir.
+- Tek anahtar, tek client. Model `env` ile seçilir → tek satırla model değişir.
+- **Model fallback (iki kademe):** önce `MODEL` (varsayılan `openrouter/free` — OpenRouter'ın o an ücretsiz modeller üzerinden yönlendiren sanal model id'si) denenir; başarısız olursa (hata / boş / rate-limit) `FALLBACK_MODEL` (varsayılan `deepseek/deepseek-v4-flash`) ile tekrar denenir. İkisi de aynı OpenRouter API'si, sadece `model` alanı değişir — ağır multi-provider dansı değil, basit iki-model retry.
 - Çok-provider soyutlaması **gereksiz** — OpenRouter zaten tüm modelleri tek API'de topluyor. hermes'in 5 api_mode + transport registry'si atlanır.
 - Yine de iç `NormalizedResponse { content, tool_calls, finish_reason, usage }` tipi tutulur — loop ham API yanıtına değil bu tipe bakar; ileride başka provider gerekirse tek `parse_response` değişir.
 - Tool calling: OpenRouter modele bağlı function-calling destekler; zod → JSON Schema tanımı gönderilir.
