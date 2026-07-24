@@ -34,5 +34,5 @@ export async function runAgent({ db, tools, sessionId, siteKey, siteName, userMe
     appendMessage(db, sessionId, { role: 'assistant', content: res.content });
     return { reason: 'completed', content: res.content };
   }
-  return { reason: 'max_turns', content: 'Yanıt üretilemedi (tur sınırı).' };
+  return { reason: 'max_turns', content: 'Could not produce an answer (turn limit reached).' };
 }

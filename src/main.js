@@ -26,6 +26,6 @@ const server = createServer(config, {
 });
 server.listen(config.port, () => console.log(`[docentic] listening on :${config.port}`));
 
-// Site verisini arka planda ısıt; sunucu beklemez.
+// Warm the site cache in the background; the server does not wait for it.
 refresh();
 setInterval(refresh, config.siteCacheTtlMin * 60 * 1000);

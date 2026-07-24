@@ -2,7 +2,8 @@
   var s = document.currentScript;
   var endpoint = s.getAttribute('data-endpoint');
   var key = s.getAttribute('data-key') || '';
-  var title = s.getAttribute('data-title') || 'Asistan';
+  var title = s.getAttribute('data-title') || 'Assistant';
+  var placeholder = s.getAttribute('data-placeholder') || 'Ask a question…';
   var SID = 'docentic_sid';
   var sid = localStorage.getItem(SID);
   if (!sid) { sid = 'd_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(SID, sid); }
@@ -13,11 +14,12 @@
     '<div style="padding:10px 12px;border-bottom:1px solid #eee;font-weight:600"></div>' +
     '<div data-log style="padding:12px;max-height:320px;overflow:auto"></div>' +
     '<form data-form style="display:flex;gap:6px;padding:10px;border-top:1px solid #eee">' +
-    '<input data-in placeholder="Soru sor…" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;font:inherit">' +
+    '<input data-in style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;font:inherit">' +
     '<input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">' +
-    '<button style="padding:8px 12px;border:0;border-radius:6px;background:#111;color:#fff;cursor:pointer">Sor</button>' +
+    '<button style="padding:8px 12px;border:0;border-radius:6px;background:#111;color:#fff;cursor:pointer">Ask</button>' +
     '</form>';
   box.firstChild.textContent = title;
+  box.querySelector('[data-in]').setAttribute('placeholder', placeholder);
   document.body.appendChild(box);
 
   var log = box.querySelector('[data-log]');
@@ -46,7 +48,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sid, key: key, message: q, website: honey.value }),
       });
-      if (!res.ok || !res.body) { out.textContent = 'Sunucu hatası (' + res.status + ').'; return; }
+      if (!res.ok || !res.body) { out.textContent = 'Server error (' + res.status + ').'; return; }
       var reader = res.body.getReader(), dec = new TextDecoder(), buf = '';
       for (;;) {
         var r = await reader.read(); if (r.done) break;
@@ -59,10 +61,10 @@
           if (!dm) continue;
           var data = JSON.parse(dm[1]);
           if (ev === 'delta') { acc += data.text; out.textContent = acc; log.scrollTop = log.scrollHeight; }
-          if (ev === 'error') { out.textContent = 'Hata: ' + data.message; }
+          if (ev === 'error') { out.textContent = 'Error: ' + data.message; }
         }
       }
-      if (!acc) out.textContent = 'Yanıt alınamadı.';
-    } catch (err) { out.textContent = 'Bağlantı hatası.'; }
+      if (!acc) out.textContent = 'No response received.';
+    } catch (err) { out.textContent = 'Connection error.'; }
   });
 })();
