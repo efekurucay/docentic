@@ -14,11 +14,19 @@ export function listPages(db) {
   return db.prepare('SELECT page_id,url,title,lang FROM pages ORDER BY url').all();
 }
 
+// Treat the user query as data, not FTS5 syntax: quote each token (doubling
+// internal quotes) so characters like " AND - ( * col: don't throw or probe.
+export function ftsQuery(query) {
+  const tokens = String(query).trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return '""';
+  return tokens.map((t) => '"' + t.replace(/"/g, '""') + '"').join(' ');
+}
+
 export function searchPages(db, query, limit = 5) {
   return db.prepare(
     `SELECT p.page_id, p.url, p.title,
             snippet(pages_fts,2,'[',']','…',12) AS snippet
      FROM pages_fts JOIN pages p ON p.page_id = pages_fts.page_id
      WHERE pages_fts MATCH ? ORDER BY bm25(pages_fts) LIMIT ?`
-  ).all(query, limit);
+  ).all(ftsQuery(query), limit);
 }

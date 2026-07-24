@@ -46,10 +46,14 @@ async function once({ apiKey, model, messages, tools, onDelta, fetchImpl }) {
 }
 
 export async function callModel({ apiKey, model, fallbackModel, messages, tools, onDelta, fetchImpl = fetch }) {
+  let started = false;
+  const guarded = (t) => { started = true; onDelta?.(t); };
   try {
-    return await once({ apiKey, model, messages, tools, onDelta, fetchImpl });
+    return await once({ apiKey, model, messages, tools, onDelta: guarded, fetchImpl });
   } catch (e) {
-    if (!fallbackModel || fallbackModel === model) throw e;
+    // Only fall back if the primary produced no output yet — otherwise the
+    // client would see the partial primary answer plus a full fallback answer.
+    if (started || !fallbackModel || fallbackModel === model) throw e;
     return await once({ apiKey, model: fallbackModel, messages, tools, onDelta, fetchImpl });
   }
 }

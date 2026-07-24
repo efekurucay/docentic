@@ -20,3 +20,16 @@ test('getHistory window limits', () => {
   for (let i = 0; i < 30; i++) appendMessage(db, 'A', { role: 'user', content: 'm' + i });
   assert.equal(getHistory(db, 'A', 10).length, 10);
 });
+
+test('getHistory drops leading orphan tool messages', () => {
+  const db = openDb(':memory:');
+  ensureSession(db, 'A', 'site');
+  // Simulate a window that would start mid-turn on tool results.
+  appendMessage(db, 'A', { role: 'assistant', content: '', tool_calls: [{ id: 'c1' }] });
+  appendMessage(db, 'A', { role: 'tool', tool_call_id: 'c1', tool_name: 'search', content: '[]' });
+  appendMessage(db, 'A', { role: 'tool', tool_call_id: 'c1', tool_name: 'x', content: '[]' });
+  appendMessage(db, 'A', { role: 'assistant', content: 'answer' });
+  // A window of size 3 would start on a tool row; it must be trimmed.
+  const h = getHistory(db, 'A', 3);
+  assert.notEqual(h[0].role, 'tool');
+});

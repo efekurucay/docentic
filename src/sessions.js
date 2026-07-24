@@ -16,12 +16,17 @@ export function getHistory(db, sessionId, maxMessages = 20) {
   const rows = db.prepare(
     `SELECT role,content,tool_calls,tool_call_id,tool_name FROM messages
      WHERE session_id=? ORDER BY id DESC LIMIT ?`).all(sessionId, maxMessages);
-  return rows.reverse().map((r) => ({
+  const msgs = rows.reverse().map((r) => ({
     role: r.role, content: r.content,
     ...(r.tool_calls ? { tool_calls: JSON.parse(r.tool_calls) } : {}),
     ...(r.tool_call_id ? { tool_call_id: r.tool_call_id } : {}),
     ...(r.tool_name ? { name: r.tool_name } : {}),
   }));
+  // A fixed-size window can start on a `tool` message whose parent assistant
+  // (with the matching tool_calls) was trimmed off — the OpenAI/OpenRouter
+  // contract rejects that. Drop leading orphan tool messages.
+  while (msgs[0] && msgs[0].role === 'tool') msgs.shift();
+  return msgs;
 }
 
 export function addUsage(db, sessionId, { input = 0, output = 0 }) {

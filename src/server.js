@@ -34,7 +34,7 @@ export function createServer(config, deps) {
     if (req.method === 'POST' && req.url === '/chat') {
       const origin = req.headers.origin;
       if (!originAllowed(origin, config.allowedOrigins)) { res.writeHead(403); return res.end('forbidden origin'); }
-      const ip = req.socket.remoteAddress || 'x';
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'x';
       if (!rl.allow(ip)) { res.writeHead(429); return res.end('rate limited'); }
       const body = await readJson(req);
       if (!body || !body.session_id || !body.message) { res.writeHead(400); return res.end('bad request'); }
@@ -47,7 +47,8 @@ export function createServer(config, deps) {
           db: deps.db, tools: deps.tools, sessionId: body.session_id, siteKey: origin,
           siteName: deps.siteName, userMessage: body.message, config, onDelta,
         });
-        send('done', { reason: out.reason });
+        if (out.reason === 'error') send('error', { message: out.content });
+        else send('done', { reason: out.reason });
       } catch (e) {
         send('error', { message: String(e.message || e) });
       }
