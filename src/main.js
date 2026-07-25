@@ -4,6 +4,7 @@ import { makeTools } from './tools.js';
 import { refreshSite } from './discover.js';
 import { runAgent } from './loop.js';
 import { createServer } from './server.js';
+import { addContact, notifyWebhook } from './contacts.js';
 
 const config = loadConfig();
 const db = openDb(process.env.DB_PATH || 'docentic.db');
@@ -23,6 +24,10 @@ async function refresh() {
 const server = createServer(config, {
   db, tools, siteName,
   runAgentImpl: (args) => runAgent({ ...args, config }),
+  onContact: (c) => {
+    addContact(db, c);
+    if (config.contactWebhook) notifyWebhook(config.contactWebhook, c);
+  },
 });
 server.listen(config.port, () => console.log(`[docentic] listening on :${config.port}`));
 

@@ -10,5 +10,6 @@ export function loadConfig(env = process.env) {
     rateLimitPerMin: Number(env.RATE_LIMIT_PER_MIN || 20),
     maxTurns: Number(env.MAX_TURNS || 8),
     siteCacheTtlMin: Number(env.SITE_CACHE_TTL_MIN || 60),
+    contactWebhook: env.CONTACT_WEBHOOK || '',
   };
 }

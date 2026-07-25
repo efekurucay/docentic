@@ -28,6 +28,11 @@ CREATE TABLE IF NOT EXISTS messages (
   role TEXT, content TEXT, tool_calls TEXT, tool_call_id TEXT, tool_name TEXT, created_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_at);
+CREATE TABLE IF NOT EXISTS contacts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, site_key TEXT, session_id TEXT,
+  name TEXT, email TEXT, message TEXT, source TEXT, created_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_contacts_site ON contacts(site_key, created_at);
 `;
 
 export function openDb(path = ':memory:') {

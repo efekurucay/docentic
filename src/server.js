@@ -31,6 +31,22 @@ export function createServer(config, deps) {
       res.writeHead(204, { 'Access-Control-Allow-Origin': req.headers.origin || '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'POST, GET' });
       return res.end();
     }
+    if (req.method === 'POST' && req.url === '/contact') {
+      const origin = req.headers.origin;
+      if (!originAllowed(origin, config.allowedOrigins)) { res.writeHead(403); return res.end('forbidden origin'); }
+      const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'x';
+      if (!rl.allow(ip)) { res.writeHead(429); return res.end('rate limited'); }
+      const body = await readJson(req);
+      if (!body || !body.message) { res.writeHead(400); return res.end('bad request'); }
+      if (body.website) { res.writeHead(400); return res.end('spam'); } // honeypot
+      const cors = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin };
+      try {
+        deps.onContact({ siteKey: origin, sessionId: body.session_id, name: body.name, email: body.email, message: body.message, source: 'form' });
+        res.writeHead(200, cors); return res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, cors); return res.end(JSON.stringify({ ok: false, error: String(e.message || e) }));
+      }
+    }
     if (req.method === 'POST' && req.url === '/chat') {
       const origin = req.headers.origin;
       if (!originAllowed(origin, config.allowedOrigins)) { res.writeHead(403); return res.end('forbidden origin'); }
@@ -42,10 +58,11 @@ export function createServer(config, deps) {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'Access-Control-Allow-Origin': origin });
       const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
       const onDelta = (t) => send('delta', { text: t });
+      const onTool = (t) => send('tool', t);
       try {
         const out = await deps.runAgentImpl({
           db: deps.db, tools: deps.tools, sessionId: body.session_id, siteKey: origin,
-          siteName: deps.siteName, userMessage: body.message, config, onDelta,
+          siteName: deps.siteName, userMessage: body.message, config, onDelta, onTool,
         });
         if (out.reason === 'error') send('error', { message: out.content });
         else send('done', { reason: out.reason });

@@ -3,7 +3,7 @@ import { dispatchAll } from './dispatch.js';
 import { systemPrompt } from './prompt.js';
 import { ensureSession, appendMessage, getHistory, addUsage } from './sessions.js';
 
-export async function runAgent({ db, tools, sessionId, siteKey, siteName, userMessage, config, onDelta, callModelImpl = callModel }) {
+export async function runAgent({ db, tools, sessionId, siteKey, siteName, userMessage, config, onDelta, onTool, callModelImpl = callModel }) {
   ensureSession(db, sessionId, siteKey);
   appendMessage(db, sessionId, { role: 'user', content: userMessage });
   const sys = { role: 'system', content: systemPrompt({ siteName }) };
@@ -24,7 +24,9 @@ export async function runAgent({ db, tools, sessionId, siteKey, siteName, userMe
 
     if (res.toolCalls && res.toolCalls.length) {
       appendMessage(db, sessionId, { role: 'assistant', content: res.content || '', tool_calls: res.toolCalls.map((t) => ({ id: t.id, type: 'function', function: { name: t.name, arguments: JSON.stringify(t.args) } })) });
-      const results = await dispatchAll(tools, res.toolCalls.map((t) => ({ name: t.name, args: t.args })));
+      res.toolCalls.forEach((t) => onTool?.({ name: t.name, args: t.args }));
+      const ctx = { siteKey, sessionId, webhook: config.contactWebhook };
+      const results = await dispatchAll(tools, res.toolCalls.map((t) => ({ name: t.name, args: t.args })), ctx);
       res.toolCalls.forEach((t, i) => {
         const r = results[i];
         appendMessage(db, sessionId, { role: 'tool', tool_call_id: t.id, tool_name: t.name, content: JSON.stringify(r.ok ? r.result : { error: r.error }) });

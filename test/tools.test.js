@@ -30,3 +30,21 @@ test('jsonSchema exists for provider', () => {
   const t = makeTools(seed());
   assert.equal(t.search.jsonSchema.type, 'object');
 });
+
+test('submit_contact writes with ctx and is not read-only', () => {
+  const db = seed();
+  const t = makeTools(db);
+  assert.equal(t.submit_contact.readOnly, false);
+  const r = t.submit_contact.run({ message: 'merhaba', name: 'Ada' }, { siteKey: 's', sessionId: 'x' });
+  assert.equal(r.delivered, true);
+  const rows = db.prepare('SELECT * FROM contacts').all();
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].message, 'merhaba');
+  assert.equal(rows[0].source, 'assistant');
+});
+
+test('read-only tools are marked read-only', () => {
+  const t = makeTools(seed());
+  assert.equal(t.search.readOnly, true);
+  assert.equal(t.read_page.readOnly, true);
+});
