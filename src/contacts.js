@@ -18,16 +18,19 @@ export function listContacts(db, siteKey, limit = 100) {
 }
 
 // Fire-and-forget notification to an optional webhook (Telegram/Discord/ntfy/…).
-export async function notifyWebhook(url, contact, fetchImpl = fetch) {
+// Pass chatId to send via a Telegram bot API URL (needs chat_id, not the
+// generic {text,content,message} shape the others accept).
+export async function notifyWebhook(url, contact, fetchImpl = fetch, chatId = '') {
   if (!url) return false;
   const text = `New contact${contact.name ? ' from ' + contact.name : ''}` +
     `${contact.email ? ' <' + contact.email + '>' : ''}:\n${contact.message}` +
     `${contact.source ? '\n(via ' + contact.source + ')' : ''}`;
+  const body = chatId ? { chat_id: chatId, text } : { text, content: text, message: text, ...contact };
   try {
     await fetchImpl(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, content: text, message: text, ...contact }),
+      body: JSON.stringify(body),
     });
     return true;
   } catch { return false; }

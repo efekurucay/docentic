@@ -26,3 +26,12 @@ test('notifyWebhook posts and returns true; skips when no url', async () => {
   assert.match(called.body.text, /Ada/);
   assert.match(called.body.text, /via tool/);
 });
+
+test('notifyWebhook sends Telegram-shaped body when chatId is set', async () => {
+  let called = null;
+  const fetchImpl = async (url, opts) => { called = { url, body: JSON.parse(opts.body) }; return { ok: true }; };
+  await notifyWebhook('https://api.telegram.org/botX/sendMessage', { name: 'Ada', message: 'hi' }, fetchImpl, '12345');
+  assert.equal(called.body.chat_id, '12345');
+  assert.match(called.body.text, /Ada/);
+  assert.equal(called.body.content, undefined);
+});

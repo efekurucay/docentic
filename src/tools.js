@@ -32,7 +32,7 @@ export function makeTools(db) {
       null,
       ({ message, name, email }, ctx) => {
         addContact(db, { siteKey: ctx.siteKey, sessionId: ctx.sessionId, name, email, message, source: 'assistant' });
-        if (ctx.webhook) notifyWebhook(ctx.webhook, { name, email, message, source: 'assistant' });
+        if (ctx.webhook) notifyWebhook(ctx.webhook, { name, email, message, source: 'assistant' }, fetch, ctx.chatId);
         return { ok: true, delivered: true, note: 'Mesaj site sahibine iletildi.' };
       },
       /* readOnly */ false),

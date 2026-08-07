@@ -26,7 +26,7 @@ const server = createServer(config, {
   runAgentImpl: (args) => runAgent({ ...args, config }),
   onContact: (c) => {
     addContact(db, c);
-    if (config.contactWebhook) notifyWebhook(config.contactWebhook, c);
+    if (config.contactWebhook) notifyWebhook(config.contactWebhook, c, fetch, config.contactChatId);
   },
 });
 server.listen(config.port, () => console.log(`[docentic] listening on :${config.port}`));

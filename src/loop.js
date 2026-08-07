@@ -25,7 +25,7 @@ export async function runAgent({ db, tools, sessionId, siteKey, siteName, userMe
     if (res.toolCalls && res.toolCalls.length) {
       appendMessage(db, sessionId, { role: 'assistant', content: res.content || '', tool_calls: res.toolCalls.map((t) => ({ id: t.id, type: 'function', function: { name: t.name, arguments: JSON.stringify(t.args) } })) });
       res.toolCalls.forEach((t) => onTool?.({ name: t.name, args: t.args }));
-      const ctx = { siteKey, sessionId, webhook: config.contactWebhook };
+      const ctx = { siteKey, sessionId, webhook: config.contactWebhook, chatId: config.contactChatId };
       const results = await dispatchAll(tools, res.toolCalls.map((t) => ({ name: t.name, args: t.args })), ctx);
       res.toolCalls.forEach((t, i) => {
         const r = results[i];
