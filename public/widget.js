@@ -106,7 +106,7 @@
         '<form data-form>' +
         '<input class="q" data-in>' +
         '<input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">' +
-        '<button>sor →</button>' +
+        '<button>' + esc(cfg.sendLabel || 'sor →') + '</button>' +
         '</form>';
     } else {
       scope = document.createElement('div');
