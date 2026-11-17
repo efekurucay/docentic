@@ -99,7 +99,7 @@
       scope = cfg.mount && document.querySelector(cfg.mount);
       if (!scope) return;
       ensureStyle();
-      scope.className = 'dctc';
+      scope.classList.add('dctc');
       scope.innerHTML =
         (avatar ? '<div class="dctc-head"><img src="' + esc(avatar) + '" alt="' + esc(label) + '"></div>' : '') +
         '<div data-log></div>' +
@@ -123,11 +123,30 @@
       document.body.appendChild(scope);
     }
 
+    var output = cfg.output && document.querySelector(cfg.output);
     var log = scope.querySelector('[data-log]');
+    var busy = false;
+    var turkish = document.documentElement.lang === 'tr';
+    if (output) {
+      log.hidden = true;
+      scope.classList.add('dctc-bubble');
+      var status = document.createElement('span');
+      status.setAttribute('role', 'status');
+      status.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap';
+      scope.appendChild(status);
+    }
+    function reply(text, state) {
+      output.dispatchEvent(new CustomEvent('docentic:response', { detail: { text: text, state: state } }));
+      output.textContent = text;
+      output.setAttribute('aria-label', text);
+      output.setAttribute('aria-busy', String(state === 'start' || state === 'delta'));
+      if (state === 'done' || state === 'error') status.textContent = text;
+    }
     var form = scope.querySelector('[data-form]');
     var input = scope.querySelector('[data-in]');
     var honey = scope.querySelector('[name=website]');
     input.setAttribute('placeholder', placeholder);
+    input.setAttribute('aria-label', placeholder);
 
     function bubble(text, who) {
       var d = document.createElement('div');
@@ -151,15 +170,20 @@
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      var q = input.value.trim(); if (!q) return;
-      bubble(q, 'me'); input.value = '';
-      var out = bubble('', 'bot'); var acc = '';
+      var q = input.value.trim(); if (!q || busy) return;
+      busy = true;
+      var submit = form.querySelector('button');
+      submit.disabled = true;
+      if (!output) bubble(q, 'me');
+      input.value = '';
+      var out = output || bubble('', 'bot'); var acc = '';
+      if (output) { status.textContent = ''; reply('…', 'start'); }
       var a = out.closest ? out.closest('.a') : null;
 
       var verb = VERBS[Math.floor(Math.random() * VERBS.length)].trim();
       var t0 = Date.now(); var frame = 0; var toolLine = '';
       if (a) a.classList.remove('streaming');
-      var spin = setInterval(function () {
+      var spin = output ? null : setInterval(function () {
         frame++;
         var g = FRAMES[frame % FRAMES.length];
         var secs = Math.floor((Date.now() - t0) / 1000);
@@ -173,7 +197,7 @@
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sid, key: key, message: q, website: honey.value }),
         });
-        if (!res.ok || !res.body) { stopSpin(); out.textContent = 'Server error (' + res.status + ').'; return; }
+        if (!res.ok || !res.body) throw new Error('response');
         var reader = res.body.getReader(), dec = new TextDecoder(), buf = '';
         for (;;) {
           var r = await reader.read(); if (r.done) break;
@@ -188,16 +212,27 @@
             if (ev === 'tool') { toolLine = toolHtml(data.name, data.args); }
             if (ev === 'delta') {
               if (spin) { stopSpin(); out.textContent = ''; if (a) a.classList.add('streaming'); }
-              acc += data.text; out.textContent = acc;
-              log.scrollTop = log.scrollHeight;
+              acc += data.text;
+              if (output) reply(acc, 'delta');
+              else { out.textContent = acc; log.scrollTop = log.scrollHeight; }
             }
-            if (ev === 'error') { stopSpin(); out.textContent = 'Error: ' + data.message; }
+            if (ev === 'error') throw new Error('response');
           }
         }
         stopSpin();
-        if (!acc) out.textContent = 'No response received.';
-      } catch (err) { stopSpin(); out.textContent = 'Connection error.'; }
-      if (a) a.classList.remove('streaming');
+        if (!acc) throw new Error('response');
+        if (output) reply(acc, 'done');
+      } catch (err) {
+        var message = turkish ? 'Bir aksilik oldu. Tekrar dener misin?' : 'Something went wrong. Try again?';
+        if (output) reply(message, 'error');
+        else out.textContent = message;
+        if (!input.value) input.value = q;
+      } finally {
+        stopSpin();
+        if (a) a.classList.remove('streaming');
+        busy = false;
+        submit.disabled = false;
+      }
     });
   }
 
@@ -205,6 +240,7 @@
     return {
       endpoint: s.getAttribute('data-endpoint'), key: s.getAttribute('data-key'),
       mode: s.getAttribute('data-mode'), mount: s.getAttribute('data-mount'),
+      output: s.getAttribute('data-output'),
       label: s.getAttribute('data-label'), avatar: s.getAttribute('data-avatar'),
       placeholder: s.getAttribute('data-placeholder'), verbs: s.getAttribute('data-verbs'),
       title: s.getAttribute('data-title'),

@@ -61,7 +61,11 @@ Add one tag to your static site, pointing at your server:
 ```
 
 The widget renders a small chat box, keeps a per-visitor session in
-`localStorage`, and streams answers over SSE.
+`localStorage`, and streams answers over SSE. Add `data-output=".speech-bubble"`
+to an inline widget to stream into an existing element instead of a chat log.
+The output emits `docentic:response` events with `{ text, state }`; states are
+`start`, `delta`, `done`, and `error`. Answers are brief and conversational;
+casual greetings do not require a content search.
 
 ## Configuration
 
