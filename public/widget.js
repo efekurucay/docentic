@@ -177,17 +177,19 @@
       if (!output) bubble(q, 'me');
       input.value = '';
       var out = output || bubble('', 'bot'); var acc = '';
-      if (output) { status.textContent = ''; reply('…', 'start'); }
       var a = out.closest ? out.closest('.a') : null;
 
       var verb = VERBS[Math.floor(Math.random() * VERBS.length)].trim();
       var t0 = Date.now(); var frame = 0; var toolLine = '';
+      if (output) { status.textContent = ''; reply(FRAMES[0] + ' ' + verb + '…', 'start'); }
+      var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (a) a.classList.remove('streaming');
-      var spin = output ? null : setInterval(function () {
+      var spin = setInterval(function () {
         frame++;
-        var g = FRAMES[frame % FRAMES.length];
+        var g = FRAMES[reduceMotion ? 0 : frame % FRAMES.length];
         var secs = Math.floor((Date.now() - t0) / 1000);
-        out.innerHTML = esc(g + ' ') + (toolLine || esc(verb + '…')) + (secs > 0 ? esc(' · ' + secs + 's') : '');
+        if (output) reply(g + ' ' + verb + '…' + (secs > 0 ? ' · ' + secs + 's' : ''), 'start');
+        else out.innerHTML = esc(g + ' ') + (toolLine || esc(verb + '…')) + (secs > 0 ? esc(' · ' + secs + 's') : '');
         if (a) a.classList.add('loading');
       }, 120);
       function stopSpin() { if (spin) { clearInterval(spin); spin = null; } if (a) a.classList.remove('loading'); }
