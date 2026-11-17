@@ -78,3 +78,14 @@ test('valid → SSE stream', async () => {
   assert.match(text, /selam/);
   srv.close();
 });
+
+
+test('versioned widget URL serves JavaScript with revalidation', async (t) => {
+  const srv = boot(); await new Promise((r) => srv.listen(0, r));
+  t.after(() => srv.close());
+  const res = await fetch(`http://localhost:${srv.address().port}/widget.js?v=release`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /javascript/);
+  assert.equal(res.headers.get('cache-control'), 'no-cache');
+  assert.match(await res.text(), /window\.docentic/);
+});

@@ -23,8 +23,8 @@ export function createServer(config, deps) {
 
   return http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') { res.writeHead(200); return res.end('ok'); }
-    if (req.method === 'GET' && req.url === '/widget.js') {
-      res.writeHead(200, { 'Content-Type': 'application/javascript', 'Access-Control-Allow-Origin': '*' });
+    if (req.method === 'GET' && req.url.split('?')[0] === '/widget.js') {
+      res.writeHead(200, { 'Content-Type': 'application/javascript', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
       return res.end(readFileSync(widgetPath, 'utf8'));
     }
     if (req.method === 'OPTIONS') {
