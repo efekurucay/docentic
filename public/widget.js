@@ -180,7 +180,7 @@
       var a = out.closest ? out.closest('.a') : null;
 
       var verb = VERBS[Math.floor(Math.random() * VERBS.length)].trim();
-      var t0 = Date.now(); var frame = 0; var toolLine = '';
+      var t0 = Date.now(); var frame = 0; var toolLine = ''; var toolText = '';
       if (output) { status.textContent = ''; reply(FRAMES[0] + ' ' + verb + '…', 'start'); }
       var reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (a) a.classList.remove('streaming');
@@ -188,7 +188,7 @@
         frame++;
         var g = FRAMES[reduceMotion ? 0 : frame % FRAMES.length];
         var secs = Math.floor((Date.now() - t0) / 1000);
-        if (output) reply(g + ' ' + verb + '…' + (secs > 0 ? ' · ' + secs + 's' : ''), 'start');
+        if (output) reply(g + ' ' + (toolText || verb + '…') + (secs > 0 ? ' · ' + secs + 's' : ''), 'start');
         else out.innerHTML = esc(g + ' ') + (toolLine || esc(verb + '…')) + (secs > 0 ? esc(' · ' + secs + 's') : '');
         if (a) a.classList.add('loading');
       }, 120);
@@ -211,7 +211,15 @@
             var dm = block.match(/data: (.*)/);
             if (!dm) continue;
             var data = JSON.parse(dm[1]);
-            if (ev === 'tool') { toolLine = toolHtml(data.name, data.args); }
+            if (ev === 'tool') {
+              toolLine = toolHtml(data.name, data.args);
+              if (output) {
+                if (data.name === 'search') toolText = 'search · ' + (data.args && data.args.query || '…');
+                else if (data.name === 'read_page') toolText = 'read_page · ' + (data.args && data.args.page_id || '…');
+                else toolText = data.name;
+                reply(FRAMES[frame % FRAMES.length] + ' ' + toolText, 'start');
+              }
+            }
             if (ev === 'delta') {
               if (spin) { stopSpin(); out.textContent = ''; if (a) a.classList.add('streaming'); }
               acc += data.text;
